@@ -3,11 +3,19 @@ from PIL import Image
 import torch
 import numpy as np
 import io
-
+import logging
+import time
+import csv
+from datetime import datetime
 from src.model import SimpleCNN
 
 app = FastAPI(title="Cats vs Dogs Classifier")
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("inference_logger")
 
+# Simple in-memory request counter
+request_count = 0
 device = torch.device("cpu")
 
 # Load trained model
@@ -37,6 +45,11 @@ def health_check():
 
 @app.post("/predict")
 def predict(file: UploadFile = File(...)):
+    global request_count
+    start_time = time.time()
+
+    request_count += 1
+
     image_bytes = file.file.read()
     image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
 
@@ -44,11 +57,31 @@ def predict(file: UploadFile = File(...)):
 
     with torch.no_grad():
         output = model(input_tensor)
-        confidence = float(output.item())
+        confidence = output.item()
 
     label = "dog" if confidence >= 0.5 else "cat"
 
+    latency = time.time() - start_time
+
+    # Log request info (no sensitive data)
+    logger.info(
+        f"Request #{request_count} | Prediction: {label} | "
+        f"Confidence: {confidence:.4f} | Latency: {latency:.4f}s"
+    )
+
+    # Save prediction to CSV (monitoring file)
+    with open("prediction_logs.csv", mode="a", newline="") as file:
+        writer = csv.writer(file)
+        writer.writerow([
+            datetime.now(),
+            label,
+            confidence,
+            latency
+        ])
+
     return {
         "prediction": label,
-        "confidence": confidence
+        "confidence": float(confidence),
+        "latency_seconds": latency,
+        "total_requests": request_count
     }
