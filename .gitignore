@@ -1,0 +1,19 @@
+# Data
+data/
+mlruns/
+
+# Virtual environment
+MlOps_venv/
+
+# Model artifacts
+models/*.pt
+
+# Python cache
+__pycache__/
+*.pyc
+
+# DVC
+.dvc/cache/
+
+# Docker
+.dockerignore
