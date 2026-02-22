@@ -11,9 +11,16 @@ app = FastAPI(title="Cats vs Dogs Classifier")
 device = torch.device("cpu")
 
 # Load trained model
+import os
+
 model = SimpleCNN()
-model.load_state_dict(torch.load("models/model.pt", map_location=device))
-model.eval()
+model_path = "models/model.pt"
+
+if os.path.exists(model_path):
+    model.load_state_dict(torch.load(model_path, map_location=device))
+    model.eval()
+else:
+    print("Warning: model file not found. Running without loaded weights.")
 
 def preprocess_image(image: Image.Image):
     image = image.resize((224, 224))
